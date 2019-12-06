@@ -1,3 +1,3 @@
 source "https://rubygems.org"
 
-gem "octokit", "~> 4.14"
+gem "octokit", git: "https://github.com/octokit/octokit.rb"
