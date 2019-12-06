@@ -32,7 +32,13 @@ end
 repo = ARGV.shift
 if repo
   client.list_issues(repo).each do |issue|
-    puts "Issue: #{issue["html_url"]}, state: #{issue["state"]}"
+    puts "Issue: #{issue["number"]}, #{issue["html_url"]}, state: #{issue["state"]}"
+    puts "\tbody: #{issue["body"]}"
+    client.issue_comments(repo, issue["number"]).each do |comment|
+      puts "\tcomment: #{comment["body"]}"
+    end
+    puts
+    break
   end
 else
   exit_with_usage!
