@@ -29,9 +29,15 @@ def access_token
   @access_token = creds["token"]
 end
 
+def issue_data
+  @issue_data ||= {}
+end
+
 def issue_text(repo)
   results = {}
   client.list_issues(repo).each do |issue|
+    issue_data[issue["html_url"]] = { "title" => issue["title"] }
+
     text = [ issue["body"] ]
     if issue["comments"] > 0
       text += client.issue_comments(repo, issue["number"]).map do |comment|
@@ -134,9 +140,9 @@ edges = find_references(repo, issue_text(repo))
 # end
 
 edges.tsort.each do |node|
-  puts "#{node}:"
+  puts "#{node} (\"#{issue_data[node]["title"]}\"):"
   edges[node].each do |destination|
-    puts "\t#{destination}"
+    puts "\t#{destination} (\"#{issue_data[destination]["title"]}\")"
   end
   puts
 end
