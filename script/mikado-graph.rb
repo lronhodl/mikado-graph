@@ -131,14 +131,6 @@ exit_with_usage! unless repo
 
 edges = find_references(repo, issue_text(repo))
 
-# edges.each_pair do |source, destinations|
-#   puts "#{source}:"
-#   destinations.each do |destination|
-#     puts "\t#{destination}"
-#   end
-#   puts
-# end
-
 edges.tsort.each do |node|
   puts "#{node} (\"#{issue_data[node]["title"]}\"):"
   edges[node].each do |destination|
