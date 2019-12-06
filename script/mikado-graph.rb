@@ -39,14 +39,13 @@ def issue_text(repo)
     end
     results[issue["number"]] = text.join("\n").gsub(/\r\n/, "\n")
   end
-  p results
   results
 end
 
 def normalize_as_issue_url(repo, reference)
   words, ref = reference.strip.split(/:\s+/)
   result = convert_ref_to_url(repo, ref)
-  puts "reference:[#{reference}], words:[#{words}], ref:[#{ref}], result:[#{result}]"
+  puts "reference:[#{reference}], words:[#{words}], ref:[#{ref}], result:[#{result}]" if debugging?
   result
 end
 
@@ -101,8 +100,8 @@ def find_references(repo, issue_map)
 
     if blocked = text_blocks(repo, text)
       blocked.each do |blocker|
-        results[blocked] ||= []
-        results[blocked] += [ url_for_number ]
+        results[blocker] ||= []
+        results[blocker] += [ url_for_number ]
       end
     end
   end
@@ -113,4 +112,12 @@ end
 repo = ARGV.shift
 exit_with_usage! unless repo
 
-p find_references(repo, issue_text(repo))
+edges = find_references(repo, issue_text(repo))
+
+edges.each_pair do |source, destinations|
+  puts "#{source}:"
+  destinations.each do |destination|
+    puts "\t#{destination}"
+  end
+  puts
+end
