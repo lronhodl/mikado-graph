@@ -3,6 +3,7 @@
 require "octokit"
 require "yaml"
 require "pp"
+require "tsort"
 
 # should debugging output be enabled?
 def debugging?
@@ -93,8 +94,9 @@ def find_references(repo, issue_map)
   results = {}
   issue_map.each_pair do |number, text|
     url_for_number = convert_ref_to_url(repo, number)
+    results[url_for_number] ||= []
+
     if deps = text_dependencies(repo, text)
-      results[url_for_number] ||= []
       results[url_for_number] += deps
     end
 
@@ -108,15 +110,32 @@ def find_references(repo, issue_map)
   results
 end
 
+# Augment Hash to support topological sorting
+class Hash
+  include TSort
+  alias tsort_each_node each_key
+  def tsort_each_child(node, &block)
+    fetch(node).each(&block)
+  end
+end
+
 # gather command-line parameters
 repo = ARGV.shift
 exit_with_usage! unless repo
 
 edges = find_references(repo, issue_text(repo))
 
-edges.each_pair do |source, destinations|
-  puts "#{source}:"
-  destinations.each do |destination|
+# edges.each_pair do |source, destinations|
+#   puts "#{source}:"
+#   destinations.each do |destination|
+#     puts "\t#{destination}"
+#   end
+#   puts
+# end
+
+edges.tsort.each do |node|
+  puts "#{node}:"
+  edges[node].each do |destination|
     puts "\t#{destination}"
   end
   puts
