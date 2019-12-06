@@ -28,18 +28,89 @@ def access_token
   @access_token = creds["token"]
 end
 
+def issue_text(repo)
+  results = {}
+  client.list_issues(repo).each do |issue|
+    text = [ issue["body"] ]
+    if issue["comments"] > 0
+      text += client.issue_comments(repo, issue["number"]).map do |comment|
+        comment["body"]
+      end
+    end
+    results[issue["number"]] = text.join("\n").gsub(/\r\n/, "\n")
+  end
+  p results
+  results
+end
+
+def normalize_as_issue_url(repo, reference)
+  words, ref = reference.strip.split(/:\s+/)
+  result = convert_ref_to_url(repo, ref)
+  puts "reference:[#{reference}], words:[#{words}], ref:[#{ref}], result:[#{result}]"
+  result
+end
+
+def convert_ref_to_url(repo, ref)
+  # See: https://help.github.com/en/github/writing-on-github/autolinked-references-and-urls#issues-and-pull-requests
+  case ref
+  when Integer
+    "https://github.com/#{repo}/issues/#{ref}"
+  when %r{^#\d+$}
+    number = ref.sub(%r{^#}, '')
+    "https://github.com/#{repo}/issues/#{number}"
+  when %r{^GH-\d+$}
+    number = ref.sub(%r{^GH-}, '')
+    "https://github.com/#{repo}/issues/#{number}"
+  when %r{^[^/#]+/[^/]+#\d+$}
+    number = ref.sub(%r{^[^/#]+/[^/]+#(\d+)$}, '\1')
+    "https://github.com/#{repo}/issues/#{number}"
+  when %r{^https://github.com/[^/]+/[^/]+/issues/\d+$}
+    ref
+  else
+    nil
+  end
+end
+
+def process_matches(repo, matches)
+  if matches.size > 0
+    result = matches.map {|match| normalize_as_issue_url(repo, match) }.compact
+    result.size > 0 ? result : nil
+  else
+    nil
+  end
+end
+
+def text_dependencies(repo, text)
+  matches = text.scan(%r{\bdepends(?:\s+|-)on:\s+[^\s]+(?:\s|\z)}i)
+  process_matches(repo, matches)
+end
+
+def text_blocks(repo, text)
+  matches = text.scan(%r{\bblocks:\s+[^\s]+(?:\s|\z)}i)
+  process_matches(repo, matches)
+end
+
+def find_references(repo, issue_map)
+  results = {}
+  issue_map.each_pair do |number, text|
+    url_for_number = convert_ref_to_url(repo, number)
+    if deps = text_dependencies(repo, text)
+      results[url_for_number] ||= []
+      results[url_for_number] += deps
+    end
+
+    if blocked = text_blocks(repo, text)
+      blocked.each do |blocker|
+        results[blocked] ||= []
+        results[blocked] += [ url_for_number ]
+      end
+    end
+  end
+  results
+end
+
 # gather command-line parameters
 repo = ARGV.shift
-if repo
-  client.list_issues(repo).each do |issue|
-    puts "Issue: #{issue["number"]}, #{issue["html_url"]}, state: #{issue["state"]}"
-    puts "\tbody: #{issue["body"]}"
-    client.issue_comments(repo, issue["number"]).each do |comment|
-      puts "\tcomment: #{comment["body"]}"
-    end
-    puts
-    break
-  end
-else
-  exit_with_usage!
-end
+exit_with_usage! unless repo
+
+p find_references(repo, issue_text(repo))
