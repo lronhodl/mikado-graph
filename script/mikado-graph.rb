@@ -31,7 +31,9 @@ end
 # gather command-line parameters
 repo = ARGV.shift
 if repo
-  # TODO: do something
+  client.list_issues(repo).each do |issue|
+    puts "Issue: #{issue["html_url"]}, state: #{issue["state"]}"
+  end
 else
   exit_with_usage!
 end
