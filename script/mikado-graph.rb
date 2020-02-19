@@ -3,7 +3,6 @@
 require "octokit"
 require "yaml"
 require "pp"
-require "tsort"
 require "ruby-graphviz"
 
 # should debugging output be enabled?
@@ -34,6 +33,10 @@ def issue_data
   @issue_data ||= {}
 end
 
+def graph_nodes
+  @graph_nodes ||= {}
+end
+
 def issue_text(repo)
   results = {}
   client.list_issues(repo, { state: "all" }).each do |issue|
@@ -41,7 +44,6 @@ def issue_text(repo)
       "title" => issue["title"],
       "state" => issue["state"]
     }
-    puts "added issue: #{issue["html_url"]} ... state: #{issue["state"]}"
 
     text = [ issue["body"] ]
     if issue["comments"] > 0
@@ -124,15 +126,6 @@ def find_references(repo, issue_map)
   results
 end
 
-# Augment Hash to support topological sorting
-class Hash
-  include TSort
-  alias tsort_each_node each_key
-  def tsort_each_child(node, &block)
-    fetch(node).each(&block)
-  end
-end
-
 def short_issue(url)
   url.sub(%r{^https://github.com/}, '').sub(%r{/issues/}, '#')
 end
@@ -156,7 +149,7 @@ def add_styled_node(graph, node, issue_data)
   graph_node
 end
 
-# gather command-line parameters
+  # gather command-line parameters
 repo = ARGV.shift
 exit_with_usage! unless repo
 
@@ -164,15 +157,16 @@ edges = find_references(repo, issue_text(repo))
 
 graph = GraphViz.new(:G, :type => :digraph)
 
-edges.tsort.each do |node|
-  puts "#{node} (\"#{issue_data[node]["title"]}\"):"
-  edges[node].each do |destination|
-    g_node = add_styled_node(graph, node, issue_data)
-    g_destination = add_styled_node(graph, destination, issue_data)
-    graph.add_edges(g_node, g_destination)
-    puts "\t#{destination} (\"#{issue_data[destination]["title"]}\")"
+# build graph nodes
+issue_data.each_pair do |url, data|
+  data["node"] = add_styled_node(graph, url, issue_data)
+end
+
+# build graph edges
+issue_data.each_pair do |url, data|
+  edges[url].each do |destination|
+    graph.add_edges(issue_data[url]["node"], issue_data[destination]["node"])
   end
-  puts
 end
 
 graph.output(png: "graph.png")
