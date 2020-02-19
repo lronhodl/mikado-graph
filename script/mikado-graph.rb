@@ -155,7 +155,7 @@ exit_with_usage! unless repo
 
 edges = find_references(repo, issue_text(repo))
 
-graph = GraphViz.new(:G, :type => :digraph)
+graph = GraphViz.new(:G, :type => :digraph, rankdir: "LR")
 
 # build graph nodes
 issue_data.each_pair do |url, data|
