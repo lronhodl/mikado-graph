@@ -159,15 +159,12 @@ graph = GraphViz.new(:G, :type => :digraph)
 
 # build graph nodes
 issue_data.each_pair do |url, data|
-  puts "node: #{url}"
   data["node"] = add_styled_node(graph, url, issue_data)
 end
 
 # build graph edges
 issue_data.each_pair do |url, data|
-  puts "url: #{url}"
   (edges[url] || []).uniq.each do |destination|
-    puts "edge: #{url} -> #{destination}"
     graph.add_edges(issue_data[url]["node"], issue_data[destination]["node"])
   end
 end
