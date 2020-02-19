@@ -164,7 +164,7 @@ end
 
 # build graph edges
 issue_data.each_pair do |url, data|
-  edges[url].each do |destination|
+  (edges[url] || []).uniq.each do |destination|
     graph.add_edges(issue_data[url]["node"], issue_data[destination]["node"])
   end
 end
