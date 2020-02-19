@@ -17,7 +17,7 @@ def exit_with_usage!
 end
 
 def client
-  @client ||= Octokit::Client.new :access_token => access_token
+  @client ||= Octokit::Client.new access_token: access_token, auto_paginate: true
   puts "Current octokit rate limit: #{@client.rate_limit.inspect}" if debugging?
   @client
 end
