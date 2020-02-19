@@ -3,7 +3,7 @@
 require "octokit"
 require "yaml"
 require "pp"
-require "tsort"
+require "ruby-graphviz"
 
 # should debugging output be enabled?
 def debugging?
@@ -33,10 +33,17 @@ def issue_data
   @issue_data ||= {}
 end
 
+def graph_nodes
+  @graph_nodes ||= {}
+end
+
 def issue_text(repo)
   results = {}
-  client.list_issues(repo).each do |issue|
-    issue_data[issue["html_url"]] = { "title" => issue["title"] }
+  client.list_issues(repo, { state: "all" }).each do |issue|
+    issue_data[issue["html_url"]] = {
+      "title" => issue["title"],
+      "state" => issue["state"]
+    }
 
     text = [ issue["body"] ]
     if issue["comments"] > 0
@@ -103,6 +110,9 @@ def find_references(repo, issue_map)
     results[url_for_number] ||= []
 
     if deps = text_dependencies(repo, text)
+      deps.each do |dep|
+        results[dep] ||= []
+      end
       results[url_for_number] += deps
     end
 
@@ -116,25 +126,48 @@ def find_references(repo, issue_map)
   results
 end
 
-# Augment Hash to support topological sorting
-class Hash
-  include TSort
-  alias tsort_each_node each_key
-  def tsort_each_child(node, &block)
-    fetch(node).each(&block)
-  end
+def short_issue(url)
+  url.sub(%r{^https://github.com/}, '').sub(%r{/issues/}, '#')
 end
 
-# gather command-line parameters
+def graph_node_text(key, issue_data)
+  "#{short_issue(key)}\n\"#{issue_data[key]["title"]}\""
+end
+
+def style_closed_node(graph_node)
+  graph_node[:shape] = "oval"
+  graph_node[:style] = "filled"
+  graph_node[:fillcolor] = "grey"
+end
+
+def add_styled_node(graph, node, issue_data)
+  graph_node = graph.add_nodes(graph_node_text(node, issue_data))
+  graph_node[:URL] = node
+  if issue_data[node]["state"] == "closed"
+    style_closed_node(graph_node)
+  end
+  graph_node
+end
+
+  # gather command-line parameters
 repo = ARGV.shift
 exit_with_usage! unless repo
 
 edges = find_references(repo, issue_text(repo))
 
-edges.tsort.each do |node|
-  puts "#{node} (\"#{issue_data[node]["title"]}\"):"
-  edges[node].each do |destination|
-    puts "\t#{destination} (\"#{issue_data[destination]["title"]}\")"
-  end
-  puts
+graph = GraphViz.new(:G, :type => :digraph)
+
+# build graph nodes
+issue_data.each_pair do |url, data|
+  data["node"] = add_styled_node(graph, url, issue_data)
 end
+
+# build graph edges
+issue_data.each_pair do |url, data|
+  edges[url].each do |destination|
+    graph.add_edges(issue_data[url]["node"], issue_data[destination]["node"])
+  end
+end
+
+graph.output(png: "graph.png")
+graph.output(svg: "graph.svg")

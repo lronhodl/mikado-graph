@@ -10,6 +10,13 @@ Use the [GitHub API](https://developer.github.com/v3/) to extract GitHub Issues 
 ``` yaml
 token: 1234567890feedfacedeadbeefcafe0987654321
 ```
+ - Install graphviz
+
+Mac OS X:
+
+```
+$ brew install graphviz
+```
 
  - Bundle, and run the script:
 
