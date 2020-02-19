@@ -36,8 +36,12 @@ end
 
 def issue_text(repo)
   results = {}
-  client.list_issues(repo).each do |issue|
-    issue_data[issue["html_url"]] = { "title" => issue["title"] }
+  client.list_issues(repo, { state: "all" }).each do |issue|
+    issue_data[issue["html_url"]] = {
+      "title" => issue["title"],
+      "state" => issue["state"]
+    }
+    puts "added issue: #{issue["html_url"]} ... state: #{issue["state"]}"
 
     text = [ issue["body"] ]
     if issue["comments"] > 0
@@ -137,6 +141,21 @@ def graph_node_text(key, issue_data)
   "#{short_issue(key)}\n\"#{issue_data[key]["title"]}\""
 end
 
+def style_closed_node(graph_node)
+  graph_node[:shape] = "oval"
+  graph_node[:style] = "filled"
+  graph_node[:fillcolor] = "grey"
+end
+
+def add_styled_node(graph, node, issue_data)
+  graph_node = graph.add_nodes(graph_node_text(node, issue_data))
+  graph_node[:URL] = node
+  if issue_data[node]["state"] == "closed"
+    style_closed_node(graph_node)
+  end
+  graph_node
+end
+
 # gather command-line parameters
 repo = ARGV.shift
 exit_with_usage! unless repo
@@ -148,10 +167,8 @@ graph = GraphViz.new(:G, :type => :digraph)
 edges.tsort.each do |node|
   puts "#{node} (\"#{issue_data[node]["title"]}\"):"
   edges[node].each do |destination|
-    g_node = graph.add_nodes(graph_node_text(node, issue_data))
-    g_node[:URL] = node
-    g_destination = graph.add_nodes(graph_node_text(destination, issue_data))
-    g_destination[:URL] = destination
+    g_node = add_styled_node(graph, node, issue_data)
+    g_destination = add_styled_node(graph, destination, issue_data)
     graph.add_edges(g_node, g_destination)
     puts "\t#{destination} (\"#{issue_data[destination]["title"]}\")"
   end
