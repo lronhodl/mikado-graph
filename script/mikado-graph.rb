@@ -149,7 +149,9 @@ edges.tsort.each do |node|
   puts "#{node} (\"#{issue_data[node]["title"]}\"):"
   edges[node].each do |destination|
     g_node = graph.add_nodes(graph_node_text(node, issue_data))
+    g_node[:URL] = node
     g_destination = graph.add_nodes(graph_node_text(destination, issue_data))
+    g_destination[:URL] = destination
     graph.add_edges(g_node, g_destination)
     puts "\t#{destination} (\"#{issue_data[destination]["title"]}\")"
   end
@@ -157,3 +159,4 @@ edges.tsort.each do |node|
 end
 
 graph.output(png: "graph.png")
+graph.output(svg: "graph.svg")
