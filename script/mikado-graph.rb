@@ -4,6 +4,7 @@ require "octokit"
 require "yaml"
 require "pp"
 require "tsort"
+require "ruby-graphviz"
 
 # should debugging output be enabled?
 def debugging?
@@ -103,6 +104,9 @@ def find_references(repo, issue_map)
     results[url_for_number] ||= []
 
     if deps = text_dependencies(repo, text)
+      deps.each do |dep|
+        results[dep] ||= []
+      end
       results[url_for_number] += deps
     end
 
@@ -125,16 +129,31 @@ class Hash
   end
 end
 
+def short_issue(url)
+  url.sub(%r{^https://github.com/}, '').sub(%r{/issues/}, '#')
+end
+
+def graph_node_text(key, issue_data)
+  "#{short_issue(key)}\n\"#{issue_data[key]["title"]}\""
+end
+
 # gather command-line parameters
 repo = ARGV.shift
 exit_with_usage! unless repo
 
 edges = find_references(repo, issue_text(repo))
 
+graph = GraphViz.new(:G, :type => :digraph)
+
 edges.tsort.each do |node|
   puts "#{node} (\"#{issue_data[node]["title"]}\"):"
   edges[node].each do |destination|
+    g_node = graph.add_nodes(graph_node_text(node, issue_data))
+    g_destination = graph.add_nodes(graph_node_text(destination, issue_data))
+    graph.add_edges(g_node, g_destination)
     puts "\t#{destination} (\"#{issue_data[destination]["title"]}\")"
   end
   puts
 end
+
+graph.output(png: "graph.png")
