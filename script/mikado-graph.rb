@@ -25,8 +25,22 @@ end
 # retrieve GitHub API token
 def access_token
   return @access_token if @access_token
-  creds = YAML.load(File.read(File.expand_path('~/.github.yml')))
-  @access_token = creds["token"]
+
+  config_paths = [
+    File.join(ENV.fetch('XDG_CONFIG_HOME', File.join(Dir.home, '.config')), 'github.yml'),
+    File.join(Dir.home, '.github.yml'),
+  ]
+
+  config_file = config_paths.find do |path|
+    File.file?(path) && File.readable?(path)
+  end
+
+  unless config_file
+    raise "No config file found at any of the following locations: #{config_paths.join(', ')}"
+  end
+
+  config = YAML.safe_load(File.read(config_file))
+  @access_token = config["token"]
 end
 
 def issue_data

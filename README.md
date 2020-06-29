@@ -5,7 +5,7 @@ Use the [GitHub API](https://developer.github.com/v3/) to extract GitHub Issues 
 ### Usage
 
  - [Create a GitHub personal access token.](https://help.github.com/articles/creating-an-access-token-for-command-line-use/) This should be made by a member of the organization who can see private repositories.
- - Place the access token in the file `~/.github.yml`:
+ - Place the access token in the file `$XDG_CONFIG_HOME/github.yml` or `~/.github.yml`:
 
 ``` yaml
 token: 1234567890feedfacedeadbeefcafe0987654321
