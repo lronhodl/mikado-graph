@@ -40,7 +40,16 @@ def access_token
   end
 
   config = YAML.safe_load(File.read(config_file))
-  @access_token = config["token"]
+  @access_token = if config["token"]
+                    config["token"]
+                  elsif config["token_cmd"]
+                    puts "Executing '#{config["token_cmd"]}' to retrieve GitHub token" if debugging?
+                    output = `#{config["token_cmd"]}`
+                    puts "Command exited #{$?.exitstatus}" if debugging?
+                    output.strip
+                  else
+                    raise "No 'token' or 'token_cmd' specified in #{config_file}"
+                  end
 end
 
 def issue_data
