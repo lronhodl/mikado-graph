@@ -1,6 +1,6 @@
 ### Generate a Mikado Graph from GitHub Issues dependencies
 
-Use the [GitHub API](https://developer.github.com/v3/) to extract GitHub Issues dependencies from a repository and create a [Mikado Graph](https://pragprog.com/magazines/2010-06/the-mikado-method) from that data.
+Use the [GitHub API](https://developer.github.com/v3/) to extract GitHub Issues dependencies from a repository and create a [Mikado Graph](http://web.archive.org/web/20100607071557/https://pragprog.com/magazines/2010-06/the-mikado-method) from that data.
 
 ### Usage
 
